@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #fff8de;
+        }
+        .container {
+            text-align: center;
+        }
+        img {
+            max-width: 100%;
+            max-height: 100%;
+            border: 1px solid #ccc; /* Optional: Add a border around the image */
+        }
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .button-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        button, select {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+    </style>
+
+
+
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+
+attribute  vec4 vPosition;
+uniform mat4 projectionMatrix, modelViewMatrix;
+
+void main() 
+{
+
+    gl_Position = projectionMatrix*modelViewMatrix*vPosition;
+} 
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+
+precision mediump float;
+
+void
+main()
+{
+    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);;
+}
+</script>
+
+
+<script id="Gouraud-vertex-shader" type="x-shader/x-vertex">
+
+    attribute  vec4 vPosition;
+    attribute  vec4 vNormal;
+    varying vec4 fColor;
+    
+    uniform vec4 ambientProduct, diffuseProduct, specularProduct;
+    uniform mat4 modelViewMatrix;
+    uniform mat4 projectionMatrix;
+    uniform vec4 lightPosition;
+    uniform float shininess;
+    uniform mat3 normalMatrix;
+    
+    void main() 
+    {
+    
+        vec3 pos = (modelViewMatrix * vPosition).xyz;
+        vec3 light = lightPosition.xyz;
+        vec3 L = normalize( light - pos );
+    
+        
+        vec3 E = normalize( -pos );
+        vec3 H = normalize( L + E );
+    
+        // Transform vertex normal into eye coordinates
+           
+        vec3 N = normalize( normalMatrix*vNormal.xyz);
+    
+        // Compute terms in the illumination equation
+        vec4 ambient = ambientProduct;
+    
+        float Kd = max( dot(L, N), 0.0 );
+        vec4  diffuse = Kd*diffuseProduct;
+    
+        float Ks = pow( max(dot(N, H), 0.0), shininess );
+        vec4  specular = Ks * specularProduct;
+        
+        if( dot(L, N) < 0.0 ) {
+        specular = vec4(0.0, 0.0, 0.0, 1.0);
+        } 
+    
+        gl_Position = projectionMatrix * modelViewMatrix * vPosition;
+        
+        fColor = ambient + diffuse +specular;
+        
+        fColor.a = 1.0;
+        
+    
+    } 
+    </script>
+    
+    <script id="Gouraud-fragment-shader" type="x-shader/x-fragment">
+    
+    precision mediump float;
+    
+    varying vec4 fColor;
+    
+    void
+    main()
+    {
+        gl_FragColor = fColor;
+    
+    }
+    </script>
+
+<script id="Phong-vertex-shader" type="x-shader/x-vertex">
+
+    attribute  vec4 vPosition;
+    attribute  vec4 vNormal;
+    uniform mat4 modelViewMatrix;
+    uniform mat4 projectionMatrix;
+    uniform mat3 normalMatrix;
+    varying vec3 n;
+    varying vec3 v;
+
+    
+    void main(void)
+    {
+    
+        v = (modelViewMatrix * vPosition).xyz;
+        n = normalize(normalMatrix * vNormal.xyz); 
+        gl_Position = projectionMatrix*modelViewMatrix*vPosition;
+    }
+    </script>
+
+<script id="Phong-fragment-shader" type="x-shader/x-fragment">
+
+    precision mediump float;
+    varying vec3 n;  // Surface normal
+    varying vec3 v;       // Vertex position
+    uniform vec4 ambientProduct, diffuseProduct, specularProduct;
+    uniform vec4 lightPosition;
+    uniform float shininess;
+
+    void main (void)  
+    { 
+        vec3 pos = v;
+        vec3 light = lightPosition.xyz;
+        vec3 L = normalize( light - pos );
+    
+        
+        vec3 E = normalize( -pos );
+        vec3 H = normalize( L + E );
+    
+        // Transform vertex normal into eye coordinates
+           
+        vec3 N = n;
+    
+        // Compute terms in the illumination equation
+        vec4 ambient = ambientProduct;
+    
+        float Kd = max( dot(L, N), 0.0 );
+        vec4  diffuse = Kd*diffuseProduct;
+    
+        float Ks = pow( max(dot(N, H), 0.0), shininess );
+        vec4  specular = Ks * specularProduct;
+        
+        if( dot(L, N) < 0.0 ) {
+        specular = vec4(0.0, 0.0, 0.0, 1.0);
+        } 
+        vec4 fColor = ambient + diffuse +specular;
+        fColor.a = 1.0;
+        
+
+        gl_FragColor = fColor;
+
+        
+  
+    }
+
+    </script>
+
+    <script id="texture-vertex-shader" type="x-shader/x-vertex">
+
+        attribute  vec4 vPosition;
+        attribute  vec3 vNormal;
+        uniform mat4 modelViewMatrix;
+        uniform mat4 projectionMatrix;
+        uniform mat3 normalMatrix;
+        varying vec3 n;
+        varying vec3 v;
+
+        attribute vec2 vTexcoord;    
+        varying vec2 fTexcoord;
+        void main() 
+        {
+            v = (modelViewMatrix * vPosition).xyz;
+            n = normalize(normalMatrix * vNormal.xyz); 
+            gl_Position = projectionMatrix*modelViewMatrix*vPosition;
+            fTexcoord = vTexcoord;
+        } 
+    </script>
+    
+    <script id="texture-fragment-shader" type="x-shader/x-fragment">
+        precision mediump float;
+        varying vec3 n;  // Surface normal
+        varying vec3 v;       // Vertex position
+        uniform vec4 ambientProduct, diffuseProduct, specularProduct;
+        uniform vec4 lightPosition;
+        uniform float shininess;
+
+        varying vec2 fTexcoord;
+        uniform sampler2D u_texture;
+    
+        void main (void)  
+        { 
+            vec3 pos = v;
+            vec3 light = lightPosition.xyz;
+            vec3 L = normalize( light - pos );
+        
+            
+            vec3 E = normalize( -pos );
+            vec3 H = normalize( L + E );
+        
+            // Transform vertex normal into eye coordinates
+               
+            vec3 N = n;
+        
+            // Compute terms in the illumination equation
+            vec4 ambient = ambientProduct;
+        
+            float Kd = max( dot(L, N), 0.0 );
+            vec4  diffuse = Kd*diffuseProduct;
+        
+            float Ks = pow( max(dot(N, H), 0.0), shininess );
+            vec4  specular = Ks * specularProduct;
+            
+            if( dot(L, N) < 0.0 ) {
+            specular = vec4(0.0, 0.0, 0.0, 1.0);
+            } 
+            vec4 fColor = ambient + diffuse +specular;
+            fColor.a = 1.0;
+
+            gl_FragColor = fColor * texture2D(u_texture, fTexcoord);
+            
+    
+            
+
+    
+    
+            
+      
+        }
+    </script>
+
+    <script id="vertex-shader-texture" type="x-shader/x-vertex">
+        attribute vec4 vPosition;
+        attribute vec2 vTexcoord;
+        uniform mat4 projectionMatrix;
+
+    
+        uniform mat4 modelViewMatrix;
+    
+        varying vec2 fTexcoord;
+        void main() 
+        {
+            gl_Position = projectionMatrix*modelViewMatrix * vPosition;
+            fTexcoord = vTexcoord;
+        } 
+    </script>
+    
+    <script id="fragment-shader-texture" type="x-shader/x-fragment">
+        precision mediump float;
+        varying vec2 fTexcoord;
+        uniform sampler2D u_texture;
+        void main()
+        {
+            gl_FragColor = texture2D(u_texture, fTexcoord);
+    
+        }
+    </script>
+    
+
+
+
+
+
+<script type="text/javascript" src="Common/webgl-utils.js"></script>
+<script type="text/javascript" src="Common/initShaders.js"></script>
+<script type="text/javascript" src="Common/MV.js"></script>
+<script type="text/javascript" src="addinionals.js"></script>
+<script type="text/javascript" src="breather.js"></script>
+
+</head> 
+
+
+
+
+
+<div class="container">
+    <div class="button-container">
+        <div class="button-group">
+                <h5> <p>Parts Settings </p> </h5>
+                Min Range of u <input id="uRangeMin" type="range" min="-30" max="-2" step="1" value="-14" />
+            </br>
+            Max Range of u <input id="uRangeMax" type="range" min="2" max="30" step="1" value="14" />
+            </br>
+            Min Range of v <input id="vRangeMin" type="range" min="-40" max="-2" step="1" value="-38" />
+            </br>
+            Max Range of v <input id="vRangeMax" type="range" min="2" max="40" step="1" value="38" />
+            </br>
+            Number of Slices of u <input id="uSlices" type="range" min="8" max="100" step="1" value="10" />
+            </br>
+            Number of Slices of v <input id="vSlices" type="range" min="8" max="100" step="1" value="10" />
+            </br>
+            aa <input id="aa_Slider" type="range" min=".1" max="1" step=".1" value=".4" />
+
+                
+
+        </div>
+        <!-- <img src="your-image-url.jpg" alt="Centered Image"> -->
+        <canvas style="border: 3px solid black" id="gl-canvas" width="512" height="512">
+          </canvas>
+        <div class="button-group">
+            <h5> <p>Camera Settings </p> </h5>
+            Theta <input id="thetaSlider" type="range" min="-180" max="180" step="5" value="0" />
+            Phi<input id="phiSlider" type="range" min="-90" max="90" step="5" value="0" />
+            Radius <input id="radiusSlider" type="range" min="0.05" max="10" step="0.1" value="4" />
+            <br/>
+            <br/>
+            <br/>
+            <br/>
+            <br/>
+            <button id = "ButtonX">Rotate X</button>
+            <button id = "ButtonY">Rotate Y</button>
+            <button id = "ButtonZ">Rotate Z</button>
+            <button id = "ButtonT">Toggle Rotation</button>
+
+        </div>
+        <div class="button-group">
+
+        </div>
+    </div>
+    <div class="button-container">
+
+      <div>
+        
+       
+            <input class="form-check-input" id="render1" type="radio"  name="renderType"  value="MESH" checked/>
+            <label class="form-check-label" for="render1">Mesh</label>
+                
+            <input class="form-check-input" id="render2" type="radio" name="renderType"  value="Gouraud" />
+            <label class="form-check-label" for="render2">Gouraud</label>
+
+            <input class="form-check-input" id="render3" type="radio" name="renderType"  value="Phong" />
+            <label class="form-check-label" for="render3">Phong</label>
+
+            <input class="form-check-input" id="render4" type="radio" name="renderType"  value="Texture" />
+            <label class="form-check-label" for="render4">Texture</label>
+        
+      </div> 
+    </div>
+</div>
+
+
+
+</body>
+</html>
