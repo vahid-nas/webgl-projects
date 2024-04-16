@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Centered Image with Buttons</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #fff8de;
+        }
+        .container {
+            text-align: center;
+        }
+        img {
+            max-width: 100%;
+            max-height: 100%;
+            border: 1px solid #ccc; /* Optional: Add a border around the image */
+        }
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .button-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        button, select {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+    </style>
+
+
+    <script id="vertex-shader" type="x-shader/x-vertex">
+
+    attribute vec4 vPosition;
+    attribute vec4 vColor;
+
+    varying vec4 fColor;
+    uniform mat4 viewMatrix;
+
+    void
+    main()
+    {
+        gl_Position = viewMatrix * vPosition;
+        fColor = vColor;
+        gl_PointSize = 1.0;
+    }
+    </script>
+
+    <script id="fragment-shader" type="x-shader/x-fragment">
+
+    precision mediump float;
+
+    varying vec4 fColor;
+
+    void
+    main()
+    {
+        gl_FragColor = fColor;
+    }
+    </script>
+
+    <script type="text/javascript" src="../Common/webgl-utils.js"></script>
+    <script type="text/javascript" src="../Common/initShaders.js"></script>
+    <script type="text/javascript" src="../Common/MV.js"></script>
+    <script type="text/javascript" src="a1.js"></script>
+
+</head>
+<body>
+    <div class="container">
+        <div class="button-container">
+            <div class="button-group">
+
+              <label for="colorPicker">Choose a color:</label>
+              <select id="colorPicker" name="colors">
+                <option value="#000000">Defaut</option>
+                <option value="#ff0000">Red</option>
+                <option value="#33FF6B">Green</option>
+                <option value="#336BFF">Blue</option>
+                <option value="#FF33E9">Pink</option>
+                <option value="#FFE933">Yellow</option>
+                <option value="#336B33">Dark Green</option>
+              </select>
+              <button id="brushButton">Stroke</button>
+              <button id="eraseButton">Erase</button>
+              <select id="selectLayer" name="selectLayer">
+                <option value=0> Layer 1</option>
+                <option value=1> Layer 2</option>
+                <option value=2> Layer 3</option>
+              </select>
+            </div>
+            <!-- <img src="your-image-url.jpg" alt="Centered Image"> -->
+            <canvas style="border: 3px solid black" id="gl-canvas" width="600" height="600">
+              </canvas>
+            <div class="button-group">
+              <button id="undoButton">Undo</button>
+              <button id="redoButton">Redo</button>
+              <button id="zoomButton">Zoom</button>
+
+            </div>
+        </div>
+        <div class="button-container">
+          <div>
+            <button id="selectButton">Select</button>
+            <button id="moveButton">Move</button>
+            <button id="copyButton">Copy</button>
+          </div>
+          <div>
+            <button id="saveButton">Save</button>
+            <button id="loadButton">Load</button>
+            <button id="drawLoadedButton">Apply Loaded File!</button>
+            <input type="file" id="fileInput" style="display:none">
+          </div>
+        </div>
+    </div>
+</body>
+</html>
